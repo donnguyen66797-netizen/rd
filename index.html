@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#10151c">
+
+<title>Futures Radar</title>
+<style>
+:root{--bg:#10151c;--sf:#18202a;--ln:#2a3542;--tx:#e6ebf1;--mu:#8795a6;--up:#3cc4a4;--dn:#ef6a5b;--am:#e8b04a;color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#f3f1ec;--sf:#fff;--ln:#d9d5cb;--tx:#1b232c;--mu:#667383;--up:#0f8f74;--dn:#c4432f;--am:#a8700c;color-scheme:light}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.45 "Avenir Next",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+main{max-width:760px;margin:auto;padding:12px}
+h1{font-size:20px;margin:6px 0 10px}h2{font-size:16px;margin:14px 0 6px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:12px;margin:8px 0}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:8px;min-width:0}
+button{background:var(--am);color:#111;border:0;font-weight:700;padding:9px 14px}
+button.g{background:transparent;color:var(--tx);border:1px solid var(--ln)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 90px}
+label{font-size:12px;color:var(--mu);display:block}
+.up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--mu)}.am{color:var(--am)}
+.sig{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-weight:800;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+.bar{height:6px;background:var(--ln);border-radius:9px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:5px 4px;border-bottom:1px solid var(--ln);text-align:right}th:first-child,td:first-child{text-align:left}
+.scroll{overflow-x:auto}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--sf);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;color:var(--mu);border-radius:0;padding:12px 2px;font-size:12px}nav button.on{color:var(--am)}
+.tab{display:none}.tab.on{display:block}
+small{color:var(--mu)}
+</style></head><body><main>
+<h1>Futures Radar</h1>
+
+<section class="tab on" id="t-scan">
+ <div class="card">
+  <label>Cặp (cách nhau bằng dấu phẩy)</label>
+  <input id="syms" style="width:100%" value="BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,DOGEUSDT">
+  <div class="row" style="margin-top:8px">
+   <select id="tf"><option>15m</option><option selected>1h</option><option>4h</option><option>1d</option></select>
+   <button id="go">Quét</button>
+   <label style="flex:1 1 110px"><input type="checkbox" id="auto"> Tự quét 60s</label>
+  </div><small id="st"></small>
+ </div>
+ <div id="res"></div>
+</section>
+
+<section class="tab" id="t-news">
+ <h2>Phân tích tin tức</h2>
+ <div class="card"><textarea id="hl" rows="5" style="width:100%" placeholder="Dán mỗi tiêu đề tin một dòng (tiếng Anh cho kết quả tốt nhất)"></textarea>
+ <div class="row" style="margin-top:8px"><button id="an">Đánh giá tác động</button></div><div id="nr"></div></div>
+ <h2>Lịch kinh tế</h2>
+ <div class="card"><div class="row"><input id="en" placeholder="Tên sự kiện"><input id="ed" type="datetime-local"><select id="et"><option value="cpi">CPI / PCE</option><option value="fomc">FOMC / lãi suất</option><option value="nfp">NFP / việc làm</option><option value="geo">Địa chính trị</option><option value="etf">ETF / pháp lý</option></select><button id="ea">Thêm</button></div>
+ <div id="ev"></div></div>
+</section>
+
+<section class="tab" id="t-dca">
+ <h2>DCA & giá thanh lý</h2>
+ <div class="card"><div class="row"><div><label>Tổng vốn (USDT)</label><input id="cap" type="number" value="1000"></div><div><label>MMR %</label><input id="mmr" type="number" value="0.4" step="0.1"></div><button id="addp" class="g">+ Thêm cặp</button></div></div>
+ <div id="pairs"></div><div id="dout"></div>
+</section>
+
+<section class="tab" id="t-copy">
+ <h2>Sao chép 1:1 theo tỉ lệ vốn</h2>
+ <div class="card"><div class="row"><div><label>Vốn của leader</label><input id="lcap" type="number" value="10000"></div><div><label>Vốn của bạn</label><input id="mcap" type="number" value="1000"></div></div>
+ <small>Nhập vị thế leader, app tính khối lượng và giá thanh lý tương ứng cho bạn.</small></div>
+ <div id="cp"></div><button id="addc" class="g">+ Thêm vị thế leader</button><div id="cout"></div>
+ <p><small>Đặt lệnh tự động cần máy chủ giữ API key (chỉ bật quyền Futures, tắt rút tiền, giới hạn IP). Không nhập API key vào web.</small></p>
+</section>
+</main>
+<nav><button class="on" data-t="scan">Quét</button><button data-t="news">Tin tức</button><button data-t="dca">DCA</button><button data-t="copy">Copy</button></nav>
+<script>
+const $=s=>document.querySelector(s),f=(n,d=2)=>isFinite(n)?(+n).toLocaleString('en',{maximumFractionDigits:d}):'-';
+const ST=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#t-'+b.dataset.t).classList.add('on')});
+
+/* ---------- chỉ báo ---------- */
+const ema=(a,p)=>{const k=2/(p+1);let e=a[0];return a.map(v=>e=v*k+e*(1-k))};
+const rsi=(c,p=14)=>{let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>0?g+=d:l-=d}g/=p;l/=p;for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p}return l===0?100:100-100/(1+g/l)};
+const atr=(k,p=14)=>{let a=0;for(let i=k.length-p;i<k.length;i++)a+=Math.max(k[i].h-k[i].l,Math.abs(k[i].h-k[i-1].c),Math.abs(k[i].l-k[i-1].c));return a/p};
+function levels(k,A){const w=4,pts=[];for(let i=w;i<k.length-w;i++){let H=true,L=true;for(let j=1;j<=w;j++){if(k[i].h<=k[i-j].h||k[i].h<=k[i+j].h)H=false;if(k[i].l>=k[i-j].l||k[i].l>=k[i+j].l)L=false}if(H)pts.push(k[i].h);if(L)pts.push(k[i].l)}
+ pts.sort((a,b)=>a-b);const cl=[];pts.forEach(p=>{const c=cl[cl.length-1];if(c&&p-c.p<A*.6){c.p=(c.p*c.n+p)/(c.n+1);c.n++}else cl.push({p,n:1})});return cl}
+function analyze(sym,raw){
+ const k=raw.map(r=>({t:r[0],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5]})),c=k.map(x=>x.c),n=k.length,px=c[n-1],A=atr(k);
+ const e20=ema(c,20),e50=ema(c,50),m=ema(c,12).map((v,i)=>v-ema(c,26)[i]),sg=ema(m,9),h=m.map((v,i)=>v-sg[i]);
+ const R=rsi(c),vAvg=k.slice(-21,-1).reduce((a,x)=>a+x.v,0)/20,vr=k[n-1].v/vAvg;
+ const lv=levels(k.slice(0,-1),A),sup=lv.filter(x=>x.p<px).sort((a,b)=>b.p-a.p),res=lv.filter(x=>x.p>px).sort((a,b)=>a.p-b.p);
+ const pick=(arr)=>arr.slice(0,3).sort((a,b)=>b.n-a.n)[0]||null,S=pick(sup),Rz=pick(res);
+ let s=0;const why=[];
+ if(px>e50[n-1]){s++;why.push('Giá trên EMA50')}else{s--;why.push('Giá dưới EMA50')}
+ if(e20[n-1]>e50[n-1]){s++;why.push('EMA20 > EMA50')}else{s--;why.push('EMA20 < EMA50')}
+ if(h[n-1]>0&&h[n-1]>h[n-2]){s++;why.push('MACD tăng tốc')}else if(h[n-1]<0&&h[n-1]<h[n-2]){s--;why.push('MACD giảm tốc')}
+ if(R>75){s-=1;why.push('RSI quá mua '+f(R,0))}else if(R<25){s+=1;why.push('RSI quá bán '+f(R,0))}else if(R>52&&R<70)s+=.5;else if(R<48&&R>30)s-=.5;
+ if(vr>1.5){s*=1.25;why.push('Khối lượng x'+f(vr,1))}
+ /* bẫy: quét 3 nến gần nhất so với vùng mạnh */
+ let trap=null;const sl=k.slice(-4,-1).concat(k[n-1]);
+ const allR=lv.filter(x=>x.n>=2),allS=lv.filter(x=>x.n>=2);
+ for(const x of sl){for(const z of allR){if(x.h>z.p&&x.c<z.p&&(x.h-z.p)>A*.1){trap={type:'bull',lv:z.p}}}
+  for(const z of allS){if(x.l<z.p&&x.c>z.p&&(z.p-x.l)>A*.1){trap={type:'bear',lv:z.p}}}}
+ if(trap){if(trap.type==='bear'){s+=2;why.push('Bear trap: quét đáy '+f(trap.lv,4)+' rồi đóng lại trên')}else{s-=2;why.push('Bull trap: phá đỉnh '+f(trap.lv,4)+' rồi đóng lại dưới')}}
+ const side=s>=2?'LONG':s<=-2?'SHORT':'CHỜ',prob=Math.max(5,Math.min(95,Math.round(50+s*8)));
+ const dir=side==='SHORT'?-1:1,sl_=px-dir*A*1.5,plan=side==='CHỜ'?null:{e:px,sl:sl_,tp1:px+dir*A*1.5,tp2:px+dir*A*3};
+ return{sym,px,s,side,prob,R,vr,S,Rz,trap,why,plan,A}}
+
+/* ---------- quét ---------- */
+async function scan(){
+ const syms=$('#syms').value.toUpperCase().split(/[,\s]+/).filter(Boolean),tf=$('#tf').value;$('#st').textContent='Đang tải...';
+ const out=await Promise.all(syms.map(async s=>{try{const r=await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=${tf}&limit=300`);if(!r.ok)throw 0;return analyze(s,await r.json())}catch(e){return{sym:s,err:1}}}));
+ out.sort((a,b)=>Math.abs(b.s||0)-Math.abs(a.s||0));
+ $('#res').innerHTML=out.map(o=>o.err?`<div class="card dn">${o.sym}: không tải được dữ liệu (kiểm tra mạng/tên cặp, hoặc Binance bị chặn ở vùng của bạn)</div>`:card(o)).join('');
+ $('#st').textContent='Cập nhật '+new Date().toLocaleTimeString()+' · khung '+tf;
+ document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const d=b.nextElementSibling.nextElementSibling.nextElementSibling;d.hidden=!d.hidden})}
+function card(o){const cl=o.side==='LONG'?'up':o.side==='SHORT'?'dn':'mu';
+ return`<div class="card"><div class="sig" data-d="1" style="cursor:pointer"><div><b>${o.sym}</b> <span class="mu">${f(o.px,o.px<1?5:2)}</span></div><span class="tag ${cl}">${o.side}</span></div>
+ <div class="bar"><i style="width:${o.prob}%;background:var(--${o.side==='SHORT'?'dn':'up'})"></i></div>
+ <small>Xu hướng tăng ~${o.prob}% · RSI ${f(o.R,0)}${o.trap?` · <b class="am">${o.trap.type==='bull'?'BULL TRAP':'BEAR TRAP'}</b>`:''}</small>
+ <div hidden style="margin-top:8px"><table>
+ <tr><td>Kháng cự mạnh</td><td>${o.Rz?f(o.Rz.p,o.px<1?5:2)+' ('+o.Rz.n+' chạm)':'-'}</td></tr>
+ <tr><td>Hỗ trợ mạnh</td><td>${o.S?f(o.S.p,o.px<1?5:2)+' ('+o.S.n+' chạm)':'-'}</td></tr>
+ ${o.plan?`<tr><td>Vào / SL</td><td>${f(o.plan.e,4)} / ${f(o.plan.sl,4)}</td></tr><tr><td>TP1 / TP2</td><td>${f(o.plan.tp1,4)} / ${f(o.plan.tp2,4)}</td></tr>`:''}
+ </table><small>${o.why.join(' · ')}</small></div></div>`}
+let tm;$('#go').onclick=scan;$('#auto').onchange=e=>{clearInterval(tm);if(e.target.checked)tm=setInterval(scan,60000)};
+
+/* ---------- tin tức & lịch ---------- */
+const KW={dn:['war','attack','missile','sanction','tariff','hawkish','rate hike','ban','hack','default','crackdown','lawsuit','inflation higher','escalat','invasion','shutdown','recession'],up:['ceasefire','peace','rate cut','dovish','etf approv','approval','stimulus','inflow','adoption','easing','deal','soft landing','cooling inflation']};
+$('#an').onclick=()=>{const L=$('#hl').value.split('\n').filter(x=>x.trim());let t=0;const rows=L.map(l=>{const x=l.toLowerCase();let s=0;KW.up.forEach(w=>x.includes(w)&&s++);KW.dn.forEach(w=>x.includes(w)&&s--);t+=s;return`<tr><td>${l.slice(0,70)}</td><td class="${s>0?'up':s<0?'dn':'mu'}">${s>0?'Tốt':s<0?'Xấu':'Trung lập'}</td></tr>`}).join('');
+ $('#nr').innerHTML=L.length?`<p><b class="${t>0?'up':t<0?'dn':'mu'}">Tổng: ${t>0?'nghiêng tốt (risk-on)':t<0?'nghiêng xấu (risk-off)':'trung lập'}</b></p><div class="scroll"><table>${rows}</table></div><small>Chấm theo từ khóa, chỉ mang tính tham khảo.</small>`:''};
+const GUIDE={cpi:'CPI cao hơn dự báo → lãi suất khó giảm → xấu cho crypto; thấp hơn → tốt. Biến động mạnh trong 1h quanh giờ công bố.',fomc:'Giọng diều hâu / tăng lãi suất → xấu; nới lỏng / hạ lãi suất → tốt. Dễ có bẫy giá hai chiều.',nfp:'Việc làm quá nóng → lo lãi suất cao → xấu; yếu vừa phải → tốt; quá yếu → lo suy thoái.',geo:'Leo thang xung đột → bán tháo ngắn hạn, USD và vàng tăng; hạ nhiệt → hồi phục.',etf:'Được duyệt / dòng tiền vào → tốt; bị bác / kiện tụng → xấu.'};
+let EV=ST('ev')||[];const rEv=()=>{EV.sort((a,b)=>a.d.localeCompare(b.d));$('#ev').innerHTML=EV.map((e,i)=>{const h=(new Date(e.d)-Date.now())/36e5;return`<div style="border-top:1px solid var(--ln);padding:8px 0"><b>${e.n}</b> <small>${new Date(e.d).toLocaleString()} · ${h>0?'còn '+f(h,1)+'h':'đã qua'}</small> <button class="g" onclick="EV.splice(${i},1);ST('ev',EV);rEv()">Xóa</button><br><small>${GUIDE[e.t]}${h>0&&h<2?' <b class="am">Sắp công bố: giảm đòn bẩy, tránh vào lệnh mới.</b>':''}</small></div>`}).join('')};
+$('#ea').onclick=()=>{if(!$('#en').value||!$('#ed').value)return;EV.push({n:$('#en').value,d:$('#ed').value,t:$('#et').value});ST('ev',EV);rEv()};rEv();
+
+/* ---------- DCA ---------- */
+const liq=(side,A,Q,M,m)=>side==='L'?(A*Q-M)/(Q*(1-m)):(A*Q+M)/(Q*(1+m));
+let P=ST('pairs')||[{s:'BTCUSDT',d:'L',lv:10,e:100000,n:5,st:2,mu:1.5,w:50},{s:'ETHUSDT',d:'S',lv:10,e:3500,n:4,st:2.5,mu:1.3,w:50}];
+function rP(){$('#pairs').innerHTML=P.map((p,i)=>`<div class="card"><div class="row"><input data-i="${i}" data-k="s" value="${p.s}"><select data-i="${i}" data-k="d"><option value="L" ${p.d=='L'?'selected':''}>Long</option><option value="S" ${p.d=='S'?'selected':''}>Short</option></select><button class="g" onclick="P.splice(${i},1);rP()">Xóa</button></div>
+<div class="row" style="margin-top:6px">${[['lv','Đòn bẩy x'],['e','Giá vào'],['n','Số lệnh'],['st','Bước giá %'],['mu','Hệ số vốn'],['w','% vốn']].map(([k,l])=>`<div><label>${l}</label><input type="number" step="any" data-i="${i}" data-k="${k}" value="${p[k]}"></div>`).join('')}</div></div>`).join('');
+ document.querySelectorAll('#pairs [data-k]').forEach(el=>el.oninput=()=>{P[el.dataset.i][el.dataset.k]=el.type=='number'?+el.value:el.value;calc()});calc()}
+function calc(){ST('pairs',P);const cap=+$('#cap').value,m=$('#mmr').value/100;let tw=0,o='';
+ P.forEach(p=>{tw+=p.w;const M=cap*p.w/100,n=Math.max(1,p.n|0),mu=p.mu,m0=mu==1?M/n:M*(mu-1)/(Math.pow(mu,n)-1);let Q=0,N=0,C=0,rows='';
+  for(let i=0;i<n;i++){const mg=m0*Math.pow(mu,i),px=p.e*(1+(p.d=='L'?-1:1)*p.st/100*i),nt=mg*p.lv,q=nt/px;Q+=q;N+=nt;C+=mg;const A=N/Q;rows+=`<tr><td>#${i+1}</td><td>${f(px,4)}</td><td>${f(mg)}</td><td>${f(A,4)}</td><td class="dn">${f(liq(p.d,A,Q,C,m),4)}</td></tr>`}
+  const lq=liq(p.d,N/Q,Q,C,m),lastPx=p.e*(1+(p.d=='L'?-1:1)*p.st/100*(n-1)),gap=Math.abs(lastPx-lq)/lastPx*100;
+  o+=`<div class="card"><b>${p.s} ${p.d=='L'?'Long':'Short'} x${p.lv}</b> <small>vốn ${f(M)} USDT</small><div class="scroll"><table><tr><th></th><th>Giá</th><th>Margin</th><th>Giá TB</th><th>Thanh lý</th></tr>${rows}</table></div>
+  <small>Thanh lý cách lệnh cuối ${f(gap,1)}%. ${gap<5?'<b class="dn">Quá gần, giảm đòn bẩy hoặc dãn bước DCA.</b>':''}</small></div>`});
+ $('#dout').innerHTML=(tw!=100?`<p class="am">Tổng % vốn các cặp = ${tw}% (nên ≤ 100%)</p>`:'')+o+'<small>Công thức isolated margin gần đúng; Binance dùng bậc MMR theo notional nên giá thực tế có thể lệch. Dùng làm tham khảo.</small>'}
+$('#addp').onclick=()=>{P.push({s:'SOLUSDT',d:'L',lv:5,e:150,n:4,st:3,mu:1.3,w:0});rP()};$('#cap').oninput=$('#mmr').oninput=calc;rP();
+
+/* ---------- Copy ---------- */
+let CP=ST('cp')||[{s:'BTCUSDT',d:'L',e:100000,nt:50000,lv:10}];
+function rC(){$('#cp').innerHTML=CP.map((p,i)=>`<div class="card"><div class="row"><input data-i="${i}" data-k="s" value="${p.s}"><select data-i="${i}" data-k="d"><option value="L" ${p.d=='L'?'selected':''}>Long</option><option value="S" ${p.d=='S'?'selected':''}>Short</option></select><button class="g" onclick="CP.splice(${i},1);rC()">Xóa</button></div>
+<div class="row" style="margin-top:6px">${[['e','Giá vào'],['nt','Notional leader'],['lv','Đòn bẩy']].map(([k,l])=>`<div><label>${l}</label><input type="number" step="any" data-i="${i}" data-k="${k}" value="${p[k]}"></div>`).join('')}</div></div>`).join('');
+ document.querySelectorAll('#cp [data-k]').forEach(el=>el.oninput=()=>{CP[el.dataset.i][el.dataset.k]=el.type=='number'?+el.value:el.value;cc()});cc()}
+function cc(){ST('cp',CP);const r=$('#mcap').value/$('#lcap').value,m=$('#mmr').value/100;
+ $('#cout').innerHTML=`<div class="card"><small>Tỉ lệ vốn ${f(r,4)}x</small><div class="scroll"><table><tr><th>Cặp</th><th>Notional</th><th>Margin</th><th>Số lượng</th><th>Thanh lý</th></tr>${CP.map(p=>{const nt=p.nt*r,mg=nt/p.lv,q=nt/p.e;return`<tr><td>${p.s} ${p.d}</td><td>${f(nt)}</td><td>${f(mg)}</td><td>${f(q,4)}</td><td class="dn">${f(liq(p.d,p.e,q,mg,m),4)}</td></tr>`}).join('')}</table></div></div>`}
+$('#addc').onclick=()=>{CP.push({s:'ETHUSDT',d:'L',e:3500,nt:20000,lv:10});rC()};$('#lcap').oninput=$('#mcap').oninput=cc;rC();
+</script></body></html>
